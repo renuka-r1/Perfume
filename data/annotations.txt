@@ -1,0 +1,628 @@
+# Scent profile + gender for each row of MIDDLE_EASTERN_CLONES_2024.xlsx
+# Format: <sheet row> <m|f|u> <accords, strongest first>
+# m = men, f = women, u = unisex.
+# Accord codes: ci citrus, aq aquatic, gr green, ar aromatic, la lavender, fr fruity,
+# tr tropical, fl floral, ro rose, wf white floral, po powdery, mu musky, va vanilla,
+# go gourmand, co coffee, bo boozy, am amber, wo woody, ou oud, sp spicy, le leather,
+# to tobacco, sm smoky, ea earthy
+2 u va wo am go
+3 f fl fr mu
+4 m ci ar wo mu
+5 u mu po fl
+6 f am va fl
+7 m sp sm am wo
+8 m sm am sp ou
+9 u fr am ro sm
+10 u am go sp
+11 f fl fr po
+12 m sm le ar
+13 m sm am sp ou
+14 m sp sm am
+15 m sp ar wo
+16 u to sp am
+17 u wo ou am fl
+18 u am sp ou
+19 m wf po wo
+20 m am fl po
+21 m gr ar wo
+22 u ro sm am
+23 m sp le am
+24 u ro ou am
+25 m aq ci ar wo
+26 m va sp go
+27 m am la go
+28 m am va sp
+29 m ou va sp
+30 f fr va ro
+31 m ci sp wf go
+32 m sp go wo
+33 m go sp wo
+34 m ar sp wo
+35 f wf ci va
+36 f wf va am
+37 f wf am mu
+38 u wo sp am
+39 u fr ro wo
+40 u ro ou am
+41 u ou am wo
+42 u sm am sp
+43 m sp go am wo
+44 m ci aq ar
+45 m wo sp
+46 u sp po wo
+47 u le go mu
+48 u go va am
+49 u fr go va
+50 u to ro am
+51 m sp wo le
+52 f go va mu
+53 m le sp sm
+54 u go am sp
+55 u gr sp wo
+56 f po fr fl
+57 m co sp wo
+58 u bo go fr
+59 u fr bo go
+60 u fl va mu
+61 u fl fr mu
+62 f am fl va
+63 f fl go fr
+64 u fr go mu
+65 u fl am mu
+66 u wf am
+67 f fl gr fr
+68 u gr fr ar
+69 m ar ci wo
+70 u am fl wo
+71 f go va
+72 f fr ro am
+73 f la va go
+74 m ci ar wo
+75 f fr va go
+76 f fr mu go
+77 u am sp wo
+78 m sp ci am
+79 u sm am wo
+80 m ar to sp
+81 u am sp
+82 u ci mu wo
+83 m aq ci ar
+84 m wo ci ar
+85 m sp le am bo
+86 f wf go wo
+87 m ou ro sp
+88 u sp le wo
+89 u to ci sp
+90 u ci fl wo mu
+91 u ro sp po
+92 u fr le po
+93 f ci wf go
+94 f fr fl
+95 f fr fl am
+96 f am fl
+97 m le bo wo
+98 u to sp go
+99 f wf co va go
+100 f fl va po
+101 u sp am le
+102 u ro sm am
+103 u ou ro am
+104 f fr go va
+105 m sp co go
+106 f fr fl
+107 m ci aq ar
+108 m aq wo ci
+109 m ci wo mu
+110 f fr fl bo
+111 f va go am
+112 m la go bo
+113 m fr ar wo
+114 u am sp
+115 m sp ci wo
+116 m ci wo ar am
+117 f ci ro ea mu
+118 m la ar wo
+119 u wo ea sm
+120 m ci aq ar mu
+121 m ci ar wo
+122 f fr fl ci mu
+123 f fl ci am
+124 f fl ci am
+125 m ci ar wo
+126 f ci ro ea
+127 f ro po mu
+128 m ou am wo
+129 f fl fr
+130 f ci fl
+131 f fl po am
+132 m ci ar wo
+133 f fr ro
+134 u ou sp wo
+135 f fl fr mu
+136 m aq ci ar
+137 f fl fr
+138 u sp wo la go
+139 m fr sm wo ci mu
+140 m fr wo sm
+141 f fr ro mu
+142 u aq ci fr mu
+143 m gr ar wo ci
+144 m ci wo ar
+145 u aq ci gr mu
+146 m aq ar gr
+147 f fl fr
+148 u ou ro wo
+149 u to go fr
+150 u ou am sp
+151 u am ro sp
+152 u le ou sp
+153 u ro ea mu
+154 u ro ea mu
+155 m po wo am
+156 m ci sp ar am
+157 m ci aq ar
+158 m sp la am wo
+159 m po le wo
+160 m po mu wo
+161 m ci sp va am
+162 m ci sp ar
+163 u go va sp
+164 m le wo fl
+165 m ci aq le
+166 f fr va go ro
+167 u ou am sp
+168 u le ou sp
+169 u ro ea mu
+170 u po wo mu am
+171 f wf fl fr
+172 f wf am mu
+173 m sp am ci
+174 f wf mu fl
+175 u ou ro wo
+176 u ou ro le
+177 f ro fl ea
+178 f wf va am
+179 u ou va go
+180 m ci aq ar
+181 f ci fr wo mu
+182 f wf fr va
+183 m ar wo ci
+184 m ci ar wo
+185 m ci sp wo
+186 m sp to ar
+187 f fr wf va
+188 m sp to am
+189 m sp to am
+190 m sp to am
+191 f ci fr mu
+192 u ou sp am
+193 f fr ci mu
+194 f fr ci mu
+195 f fr gr fl
+196 u wf po mu
+197 f wf am va
+198 f fr ro va
+199 f fr ro mu
+200 u am mu wo
+201 u wo mu
+202 u wo ea mu
+203 f wf fl mu
+204 u wf fr mu
+205 u fr ci mu am
+206 m ci ar sp
+207 f am ro mu
+208 m le wo am
+209 u gr sm ar
+210 m ci ar wo
+211 m ci sp ar
+212 u go va am
+213 u ou ro sp
+214 u ou ro fr
+215 f ro ea sp am
+216 u go va mu
+217 m aq ci ar wo
+218 m va sp go
+219 m bo va sp
+220 m ou va sp
+221 f wf am mu
+222 u ro ou am
+223 u ou am wo
+224 f ci aq gr
+225 m aq ar sm
+226 m aq ar wo
+227 m aq ci ar
+228 m fr am sp
+229 u am fr go
+230 u fl va am
+231 u wo am sp
+232 m po bo wo
+233 m ar ci wo
+234 m po ea sp
+235 f wf ea mu
+236 f wf va am
+237 f wf sp fr
+238 f fl wo mu
+239 f am va
+240 f ro am
+241 f fr ro mu
+242 u wo go
+243 u go va sp
+244 u ou am le
+245 f fl ci
+246 u sp po mu
+247 u ou ea sp
+248 f wf fl
+249 f fl po
+250 f wf fr
+251 m la ci wo
+252 f fl fr ea
+253 f fl am mu
+254 u sp co to
+255 u ro sp
+256 f wf fl
+257 u va bo am sp
+258 u wo ou am
+259 u ou am sm
+260 m go la wo
+261 f fr ro go
+262 u ea wo am
+263 u gr ci ar
+264 u mu fr am
+265 u le am va
+266 u le sp
+267 u fr ou ro
+268 f wf
+269 u sp ar
+270 u wo am po
+271 f ro fr
+272 m ar la wo
+273 f fl fr
+274 f sp wf ci
+275 m ci ea wo
+276 m ci ea wo
+277 m fr sp wo
+278 m fr va wo
+279 m gr ar fr
+280 m ar wo am
+281 u mu fl am
+282 u ou fr wo
+283 u ou sp wo la
+284 u ro am va
+285 u fr bo go
+286 u to bo va sp
+287 u fl go
+288 m am sp
+289 m ci ar le
+290 f fl
+291 m fr va la go
+292 f fl go mu
+293 f wf go am
+294 m go ar
+295 m tr ar
+296 m la ar va
+297 f fr va go
+298 f fl va go
+299 f wf fr
+300 f wf aq go
+301 f fl va po
+302 f fr va go
+303 f fl go
+304 u aq ar wo ea
+305 u go sp
+306 u wo va mu
+307 f go va
+308 f go va
+309 f fr go
+310 f va go am mu
+311 f fr ro
+312 f va ea go
+313 f go va
+314 f fr go
+315 m wo ar
+316 f po fl va
+317 u am mu
+318 u am mu fl
+319 f go wf va mu
+320 f wf fr
+321 u bo go va sp
+322 m bo wo
+323 u co bo go
+324 u sp ci fr
+325 u fr bo
+326 u gr ar
+327 u co sp
+328 u le bo
+329 u ro ou
+330 f fl
+331 m ci ar mu
+332 m ci ar mu
+333 f fl
+334 m wo ea
+335 f fl ci
+336 u ou ro sp
+337 f go va fr po
+338 f fr ro va
+339 f fr go va
+340 f ro mu
+341 f ro va
+342 f va po
+343 f ro fr va
+344 f fl gr
+345 f fl fr
+346 f fr fl
+347 f go va tr mu fl
+348 u wo le sp po
+349 u ci mu am
+350 u mu am wo fr
+351 u mu go po
+352 u po fl
+353 f fl po
+354 u ou fr am
+355 u ci gr aq
+356 u le sm
+357 u ci am
+358 u am wf
+359 m ci aq ar
+360 u ou fl
+361 m ci ar sp
+362 f ro
+363 m le ou sp
+364 u ci fl am
+365 u ci aq
+366 u ci aq ar
+367 u ou wo
+368 u fl le
+369 u tr ou
+370 u am wo sp wf
+371 u am sp fr
+372 u ou ro va
+373 u va mu wo
+374 u ar mu wo
+375 u ci wo
+376 u am va
+377 u ci gr mu
+378 u sm wo va go
+379 u bo to va ar
+380 u fl mu
+381 u go sp
+382 u co go
+383 u am fr sp
+384 u to sp fr
+385 u sp ou
+386 u ci fr wo
+387 f ro va go
+388 f tr va
+389 f go fl
+390 f fl go
+391 u le ar mu
+392 u va po
+393 u sm am
+394 u sp mu
+395 u le sm
+396 u ro sp
+397 u go ar
+398 u le gr
+399 u le
+400 u fl am mu
+401 u le sp ea
+402 u le
+403 u le gr
+404 f fl
+405 u to wo
+406 m ar wo ea
+407 m ar fr
+408 m ci aq ar
+409 m ci aq wo
+410 u co ro va
+411 u fr am
+412 f ro mu
+413 u ro
+414 u ou go to
+415 u ro ou
+416 u ou am
+417 u ou mu
+418 m ar sp
+419 m ar sp wo
+420 f ci fr
+421 f fr go
+422 m bo go va
+423 m to go
+424 f wf am wo
+425 f va wf
+426 f fr ro
+427 m bo go va
+428 f fr go
+429 f po mu fl
+430 f am mu
+431 f ro mu
+432 f mu ro
+433 f mu fl
+434 m mu po wo
+435 f mu
+436 u fr go
+437 u sm wo ea
+438 f fr
+439 u va sp go
+440 m fr wo ea
+441 u sp wo
+442 u fr
+443 u bo to
+444 u aq am
+445 u sm ea
+446 m va am
+447 m fr wo
+448 m fr wo
+449 m aq ci
+450 m aq am
+451 m aq ci wo
+452 f va mu
+453 m fr wo
+454 m ou sp
+455 m va am
+456 m am va sp
+457 f fr wf va
+458 m sp am le ci
+459 f fl go
+460 f fl
+461 m la ci
+462 u wo
+463 u po
+464 m va sp
+465 f ro fr
+466 f mu wf
+467 m fr la va sp
+468 f ro fr am
+469 m go la wo
+470 u sp va go
+471 m gr ci
+472 u go sp
+473 f ro fr mu va
+474 m ou fr va
+475 m va sp
+476 m ci sp
+477 m ci gr
+478 f fr go
+479 m to va
+480 m ea ar
+481 m go am
+482 m sp wo
+483 f fl
+484 f fr fl
+485 m sp to
+486 u wo sp
+487 f wf
+488 m go bo
+489 m po mu
+490 m la ci
+491 m ci ar
+492 m fr wo
+493 u fr am
+494 u fr go
+495 u am ou
+496 m ci ar
+497 m bo sp to
+498 u aq ci
+499 u fl am mu
+500 f fl
+501 f go va tr fr
+502 u ci sp
+503 u tr am
+504 u am
+505 u tr
+506 u ro ci
+507 u sp am wo
+508 u ou
+509 u le
+510 u fl
+511 u ou am
+512 u mu fr
+513 u mu ci
+514 u fr mu
+515 u fr fl
+516 u fr ci
+517 u am mu
+518 u fr am
+519 u fr ci
+520 u wo sp
+521 u ou am
+522 u le fr
+523 u to va sp go
+524 u ou wo sp am
+525 u fr bo
+526 u ro sp
+527 u fr go bo am
+528 u le sp fl ea
+529 u le
+530 m sp go
+531 u la
+532 u va
+533 u aq ci wo
+534 u ea fr sp go fl
+535 u ea fr
+536 u sm wo
+537 u ro ea
+538 f fl
+539 u le la
+540 u ci
+541 u fr sm
+542 u to ou
+543 f fl go
+544 f ro
+545 u fr
+546 u tr fl
+547 u va
+548 f fr go
+549 m po co go
+550 f fl
+551 m ar
+552 m ci sp
+553 f fl fr
+554 m ar va ci fr
+555 u fl
+556 f wf
+557 f ci gr
+558 f fr
+559 m aq ar
+560 f fl
+561 u fr am
+562 u go
+563 f fl
+564 f fl
+565 f fl
+566 f fr fl
+567 f fr fl
+568 f fr fl
+569 f fr fl
+570 f fr fl
+571 f fl
+572 f fl
+573 f fl
+574 f fl
+575 f aq
+576 f fl
+577 f fl
+578 f fl go ea va
+579 f fl
+580 f go
+581 m sp to
+582 m to va sp
+583 u tr
+584 u ou am
+585 u ou am
+586 u ou am
+587 u sp
+588 u fr ci mu va
+589 m la go to
+590 u fl go
+591 u fl go
+592 f fl
+593 u fl
+594 u ou
+595 u go
+596 u fr
+597 u fr
+598 u fr
+599 f fl
+600 u go
+601 u go
+602 m ci sp wo
+603 m la sp
+604 m sp la
+605 m sp wo
+606 u sp va
+607 m ar ci
+608 m ar ci
+609 m ar ci
+610 u le va
+611 u fl
+612 f fl
+613 f co va wf go
+614 u ro
+615 f la wf va ci
+616 f la wf va am
+617 f fl
+618 f fl
+619 f fl
+620 m ou
+621 m le
+622 u sp am
