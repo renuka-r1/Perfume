@@ -97,10 +97,40 @@
 
   function isBudget(house) { return window.BUDGET_HOUSES.includes(norm(house)); }
 
+  // "Armani" ~ "Giorgio Armani", "MFK" ~ "Maison Francis Kurkdjian", "YSL" ~ "Yves Saint Laurent".
+  function sameHouse(a, b) {
+    const x = norm(a), y = norm(b);
+    if (!x || !y) return true;
+    const cx = x.replace(/ /g, ""), cy = y.replace(/ /g, "");
+    if (cx === cy || cx.includes(cy) || cy.includes(cx)) return true;
+    const initials = (s) => s.split(" ").map((w) => w[0]).join("");
+    if (initials(x) === cy || initials(y) === cx) return true;
+    return x.split(" ")[0] === y.split(" ")[0] && x.split(" ")[0].length > 3;
+  }
+
+  /* ---------- gender ---------- */
+
+  const GENDERS = ["men", "women", "unisex"];
+  function parseGender(text) {
+    const t = " " + norm(text) + " ";
+    if (!t.trim()) return null;
+    if (/ (unisex|shared|both|all) /.test(t)) return "unisex";
+    if (/ (women|woman|female|womens|ladies|lady|her|she|femme|donna|pour femme|girl|f) /.test(t)) return "women";
+    if (/ (men|man|male|mens|him|he|homme|uomo|pour homme|boy|m) /.test(t)) return "men";
+    return null;
+  }
+  // Hints in a perfume's own name: "Fierce (Men)", "Pour Homme", "for Her"…
+  function genderFromName(name) {
+    const t = " " + norm(name) + " ";
+    if (/ (women|woman|womens|for her|pour femme|femme|donna|lady|girl|elle|her) /.test(t)) return "women";
+    if (/ (men|man|mens|for him|pour homme|homme|uomo|boy|him|male) /.test(t)) return "men";
+    return null;
+  }
+
   function makeItem(house, name, extra) {
     return Object.assign({
       id: idOf(house, name), house: house || "", name, kind: "original",
-      accords: {}, notes: "", dupeOf: [], dupes: [], explicitSeasons: null, explicitTimes: null, fromSheet: false,
+      accords: {}, notes: "", dupeOf: [], dupes: [], explicitSeasons: null, explicitTimes: null, fromSheet: false, gender: null,
     }, extra || {});
   }
 
@@ -119,8 +149,8 @@
       const list = byName.get(n) || [];
       // Same name, house written differently ("MFK" vs "Maison Francis Kurkdjian"):
       // treat as the same perfume when the name is unambiguous.
-      if (list.length === 1 || !house) return list[0] || null;
-      return list.find((x) => !x.house) || null;
+      if (!house) return list[0] || null;
+      return list.find((x) => sameHouse(x.house, house)) || null;
     }
     function upsert(house, name, extra) {
       let item = find(house, name);
@@ -138,6 +168,7 @@
         if (extra.seasons) item.explicitSeasons = extra.seasons;
         if (extra.times) item.explicitTimes = extra.times;
         if (extra.fromSheet) item.fromSheet = true;
+        if (extra.gender) item.gender = extra.gender;
       }
       return item;
     }
@@ -145,10 +176,11 @@
     for (const r of records) {
       if (!r.name) continue;
       const accords = r.accords || accordsFromText(r.notes);
-      const orig = upsert(r.house, r.name, { accords, notes: r.notes, seasons: r.seasons, times: r.times, fromSheet: r.fromSheet });
+      const orig = upsert(r.house, r.name, { accords, notes: r.notes, seasons: r.seasons, times: r.times, fromSheet: r.fromSheet, gender: r.gender });
       for (const [dh, dn, dNotes] of r.dupes || []) {
         if (!dn) continue;
         const d = upsert(dh, dn, dNotes ? { accords: accordsFromText(dNotes), notes: dNotes, fromSheet: r.fromSheet } : { fromSheet: r.fromSheet });
+        if (d === orig) continue;
         d.kind = "dupe";
         if (!d.dupeOf.includes(orig.id)) d.dupeOf.push(orig.id);
         if (!orig.dupes.includes(d.id)) orig.dupes.push(d.id);
@@ -156,6 +188,14 @@
     }
 
     const items = [...byId.values()];
+    // Gender: the sheet's column or annotation, else a hint in the name ("Pour Homme"),
+    // else whatever the original it copies is marketed as. Originals first.
+    const ordered = items.filter((it) => !it.dupeOf.length).concat(items.filter((it) => it.dupeOf.length));
+    for (const it of ordered) {
+      if (it.gender) continue;
+      const src = it.dupeOf.map((id) => byId.get(id)).find((o) => o.gender);
+      it.gender = genderFromName(it.name) || (src && src.gender) || "unisex";
+    }
     // A dupe without its own notes borrows the scent profile of what it copies.
     for (const it of items) {
       if (!Object.keys(it.accords).length && it.dupeOf.length) {
@@ -165,6 +205,8 @@
         if (!it.explicitSeasons && src.explicitSeasons) it.explicitSeasons = src.explicitSeasons;
         if (!it.explicitTimes && src.explicitTimes) it.explicitTimes = src.explicitTimes;
       }
+      // Gender: the sheet's own column or annotation, else a hint in the name,
+      // else whatever the original it copies is marketed as.
       if (it.kind === "original" && !it.dupeOf.length && isBudget(it.house) && !it.dupes.length) it.budget = true;
       if (it.kind === "dupe") it.budget = true;
       const c = classify(it.accords);
@@ -208,6 +250,19 @@
     let b = 0;
     if (!data.length) return { w, b, n: 0, loved: [], disliked: [] };
 
+    // With few "not for me" answers there is nothing to contrast loves against,
+    // so a spread of unrated perfumes joins in as weak negatives (PU learning).
+    const pos = data.filter(([, l]) => l === 1).length;
+    const neg = data.length - pos;
+    const sw = data.map(() => 1);
+    if (pos && neg < pos) {
+      const unrated = catalog.items.filter((it) => !(it.id in ratings) && !it.unknownScent);
+      const k = Math.min(unrated.length, 4 * pos);
+      for (let i = 0; i < k; i++) {
+        data.push([unrated[Math.floor((i * unrated.length) / k)], 0]);
+        sw.push(0.25);
+      }
+    }
     const X = data.map(([it]) => features(it));
     const y = data.map(([, l]) => l);
     const lr = 0.8, l2 = 0.04, epochs = 400;
@@ -216,15 +271,18 @@
       let gb = 0;
       for (let i = 0; i < X.length; i++) {
         const z = X[i].reduce((s, x, j) => s + x * w[j], b);
-        const err = sigmoid(z) - y[i];
+        const err = (sigmoid(z) - y[i]) * sw[i];
         for (let j = 0; j < w.length; j++) gw[j] += err * X[i][j];
         gb += err;
       }
-      for (let j = 0; j < w.length; j++) w[j] -= lr * (gw[j] / X.length + l2 * w[j]);
-      b -= lr * (gb / X.length);
+      const n = sw.reduce((a, x) => a + x, 0);
+      for (let j = 0; j < w.length; j++) w[j] -= lr * (gw[j] / n + l2 * w[j]);
+      b -= lr * (gb / n);
     }
+    const real = pos + neg;
+    data.length = real;
     return {
-      w, b, n: data.length,
+      w, b, n: real,
       loved: data.filter(([, l]) => l === 1).map(([it]) => it),
       disliked: data.filter(([, l]) => l === 0).map(([it]) => it),
     };
@@ -278,9 +336,10 @@
     notes: /note|accord|family|profile|smell|description|scent profile/,
     season: /season/,
     time: /time|day|night|occasion|wear/,
+    gender: /gender|sex|for men|for women|men women|category|target/,
   };
 
-  function guessMapping(headers) {
+  function guessMapping(headers, body = []) {
     const h = headers.map((x) => norm(x));
     const used = new Set();
     const pick = (re, avoid) => {
@@ -291,19 +350,31 @@
     const m = {};
     m.dupeHouse = pick(FIELD_PATTERNS.dupeHouse);
     m.season = pick(FIELD_PATTERNS.season);
+    m.gender = pick(FIELD_PATTERNS.gender);
     m.time = pick(FIELD_PATTERNS.time);
     m.notes = pick(FIELD_PATTERNS.notes, FIELD_PATTERNS.dupe);
     m.dupe = pick(FIELD_PATTERNS.dupe, /notes?|accord/);
     m.house = pick(FIELD_PATTERNS.house, FIELD_PATTERNS.dupe);
     m.name = pick(FIELD_PATTERNS.name);
-    if (m.name < 0) {
-      const free = h.findIndex((x, idx) => x && !used.has(idx));
-      if (free >= 0) { m.name = free; used.add(free); }
+
+    // Columns whose header says nothing useful are judged by their contents.
+    const filled = (i) => body.map((r) => r[i] || "").filter(Boolean);
+    const free = () => headers.map((_, i) => i).filter((i) => !used.has(i) && filled(i).length >= Math.min(3, body.length));
+    if (m.house < 0 && body.length) {
+      // A brand column repeats the same few short values ("Dior", "Dior", "Chanel"…).
+      const cand = free().map((i) => {
+        const v = filled(i);
+        return { i, rep: 1 - new Set(v.map(norm)).size / v.length, short: v.every((x) => x.length < 40) };
+      }).filter((c) => c.short && c.rep >= 0.25 && (m.name < 0 || c.i < m.name)).sort((a, b) => b.rep - a.rep)[0];
+      if (cand) { m.house = cand.i; used.add(cand.i); }
     }
-    if (m.dupe < 0) {
-      const free = h.findIndex((x, idx) => x && !used.has(idx));
-      if (free >= 0) { m.dupe = free; used.add(free); }
+    for (const key of ["name", "dupe"]) {
+      if (m[key] < 0) {
+        const f = free()[0] ?? h.findIndex((x, idx) => x && !used.has(idx));
+        if (f >= 0) { m[key] = f; used.add(f); }
+      }
     }
+    for (const k of ["dupeHouse", "season", "gender", "time", "notes", "dupe", "house", "name"]) if (m[k] === undefined) m[k] = -1;
     return m;
   }
 
@@ -313,15 +384,41 @@
     const hi = clean.findIndex((r) => r.filter(Boolean).length >= 2);
     if (hi < 0) return { headers: [], body: [] };
     const width = Math.max(...clean.map((r) => r.length));
-    const headers = Array.from({ length: width }, (_, i) => clean[hi][i] || "Column " + (i + 1));
+    let headers = Array.from({ length: width }, (_, i) => clean[hi][i] || "Column " + (i + 1));
     const body = clean.slice(hi + 1).filter((r) => r.some(Boolean));
-    return { headers, body };
+    // Drop columns that are empty all the way down.
+    const keep = headers.map((_, i) => clean[hi][i] || body.some((r) => r[i]));
+    headers = headers.filter((_, i) => keep[i]);
+    return { headers, body: body.map((r) => r.filter((_, i) => keep[i])) };
   }
 
+  // Spelling variants seen in real dupe lists → one name per house.
+  const HOUSE_ALIASES = {
+    "alhambra": "Maison Alhambra", "mason alhambra": "Maison Alhambra", "lataffa": "Lattafa", "haramain": "Al Haramain",
+    "rouge perfumes": "Rogue Perfumes", "ryhaan": "Rayhaan", "fragrance wolrd": "Fragrance World", "arabiyt prestige": "Arabiyat Prestige",
+    "arabiyat": "Arabiyat Prestige", "frenche avenue": "French Avenue", "french ave": "French Avenue", "afan": "Afnan",
+    "granduer elite": "Grandeur Elite", "emer": "Emper", "riffs": "Riiffs", "carolina herrara": "Carolina Herrera",
+    "louis vitton": "Louis Vuitton", "billy eilish": "Billie Eilish", "brittany spears": "Britney Spears",
+    "emporo armani": "Emporio Armani", "dreis van noten": "Dries Van Noten", "mont blanc": "Montblanc", "memo paris": "Memo",
+    "penhaligons": "Penhaligon's", "armani": "Giorgio Armani", "pana dora": "Pana Dora",
+  };
+  const canonHouse = (h) => HOUSE_ALIASES[norm(h)] || String(h || "").trim();
+
+  // Houses that make dupes; used to read "Name, House" entries.
+  const DUPE_HOUSES = ["Lattafa", "Lattafa Pride", "Lattafa Niche Emarati", "Armaf", "Afnan", "Al Haramain", "Maison Alhambra", "Fragrance World",
+    "French Avenue", "Paris Corner", "Zimaya", "Rasasi", "Khadlaj", "Orientica", "Emir", "Zakat", "Rogue Perfumes", "MPF", "Dubai Essences",
+    "Ard Al Zaafaran", "Arabiyat Prestige", "Arabiyat", "Swiss Arabian", "Al Rehab", "Riiffs", "Al Wataniah", "Rayhaan", "Grandeur", "Grandeur Elite",
+    "Emper", "Jo Milano", "Pendora Scents", "Pendora", "Borouj", "Ajmal", "Lucianno", "Mawj", "North Stag Expressions", "North Stag",
+    "Luxe Vision", "Asdaaf", "Attar Collection", "Arabian Oud", "Ahmed Al Maghribi", "FA Paris", "Fayrouz", "Nuha", "Reyane", "Nusuk",
+    "Aroma Concepts", "Aroma West", "Autobiography", "Oros Pure", "Albait Aldimashqi", "Ainash Parfums", "Ibraheem Al Qurashi", "Luxador",
+    "Mamlakat Al Oud", "Maison Asrar", "Milestone", "Volare", "Ether Perfumes", "Monster Perfumes", "Al Aneeq", "White Oud Perfumes",
+    "Zoghbi", "Jeanne Arthes", "Franck Olivier", "Rawae'e", "Ministry of Oud", "Fragrance World Ministry of Oud", "Privezarah", "Athoor Al Alam",
+    "Artisan Collection", "Out Al Zaafaran", "Zara", "Dossier", "Alt", "Oakcha", "Alexandria", "Ariana Grande"];
   const KNOWN_HOUSES = () => {
-    const set = new Set(window.SEED_PERFUMES.flatMap((p) => [p.house, ...p.dupes.map((d) => d[0])]));
+    const set = new Set(window.SEED_PERFUMES.flatMap((p) => [p.house, ...p.dupes.map((d) => d[0])]).concat(DUPE_HOUSES));
     return [...set].sort((a, b) => b.length - a.length);
   };
+  const isKnownHouse = (s) => { const n = norm(s); return !!n && (KNOWN_HOUSES().some((h) => norm(h) === n) || n in HOUSE_ALIASES); };
 
   // "Aventus by Creed", "Creed - Aventus", "Creed Aventus" → [house, name]
   function splitHouse(text, fallbackHouse) {
@@ -332,19 +429,54 @@
       const house = m[2].trim();
       let name = m[1].trim();
       if (name.toLowerCase().startsWith(house.toLowerCase() + " ")) name = name.slice(house.length).trim();
-      return [house, name];
+      return [canonHouse(house), name];
     }
     m = t.match(/^(.+?)\s+[-–—:|]\s+(.+)$/);
-    if (m) return [m[1].trim(), m[2].trim()];
-    if (fallbackHouse) return [fallbackHouse, t];
+    if (m) return [canonHouse(m[1].trim()), m[2].trim()];
+    if (fallbackHouse) return [canonHouse(fallbackHouse), t];
     const lower = t.toLowerCase();
     const known = KNOWN_HOUSES().find((h) => lower.startsWith(h.toLowerCase() + " "));
-    if (known) return [known, t.slice(known.length).trim()];
+    if (known) return [canonHouse(known), t.slice(known.length).trim()];
     return ["", t];
   }
 
-  function recordsFromTable(body, m) {
+  const cleanEntry = (s) => s.replace(/\((?:[^)]*)\)/g, "").replace(/\*/g, "").replace(/\s+/g, " ").trim();
+  const entriesOf = (text) => String(text || "").split(/\s*(?:\n|;|\s\/\/?\s)\s*/).map(cleanEntry).filter(Boolean);
+
+  /*
+   * Dupe cells come in two shapes:
+   *   list:       "Zara Red Temptation, Ariana Grande Cloud"   (house first, comma between dupes)
+   *   name-house: "Rhagba, Lattafa" / "Rose D'Prive, French Avenue, Fragrance World"  (one dupe per line)
+   * The column's own contents decide which.
+   */
+  function dupeStyle(cells) {
+    const entries = cells.flatMap(entriesOf).filter((e) => e.includes(","));
+    if (!entries.length) return "list";
+    const tailKnown = entries.filter((e) => isKnownHouse(e.split(",").pop())).length;
+    return tailKnown / entries.length >= 0.3 ? "name-house" : "list";
+  }
+
+  function splitDupeEntry(entry, style, dupeHouse) {
+    if (style !== "name-house" || !entry.includes(",")) return splitHouse(entry, dupeHouse);
+    const parts = entry.split(",").map((p) => p.trim()).filter(Boolean);
+    const houses = [];
+    while (parts.length > 1 && isKnownHouse(parts[parts.length - 1])) houses.unshift(canonHouse(parts.pop()));
+    if (!houses.length && parts.length > 1) houses.push(canonHouse(parts.pop()));
+    const house = houses.length > 1 ? `${houses[0]} (${houses.slice(1).join(", ")})` : houses[0] || dupeHouse || "";
+    return [house, parts.join(" ")];
+  }
+
+  function splitDupes(text, dupeHouse, style = "list") {
+    if (!text) return [];
+    const entries = style === "name-house"
+      ? entriesOf(text)
+      : String(text).split(/\s*(?:;|\n|,(?![^(]*\))|\s\/\/?\s|\bor\b)\s*/i).map(cleanEntry).filter(Boolean);
+    return entries.map((e) => splitDupeEntry(e, style, dupeHouse)).filter(([, n]) => n);
+  }
+
+  function recordsFromTable(body, m, style) {
     const cell = (r, i) => (i >= 0 ? r[i] || "" : "");
+    style = style || dupeStyle(body.map((r) => cell(r, m.dupe)));
     const records = [];
     let lastOrig = null;
     for (const r of body) {
@@ -352,31 +484,47 @@
       const dupeCell = cell(r, m.dupe);
       // Rows with a blank original continue the previous perfume's dupes.
       if (!nameCell && dupeCell && lastOrig) {
-        lastOrig.dupes.push(...splitDupes(dupeCell, cell(r, m.dupeHouse)));
+        lastOrig.dupes.push(...splitDupes(dupeCell, cell(r, m.dupeHouse), style));
         continue;
       }
       if (!nameCell) continue;
-      const [house, name] = splitHouse(nameCell, cell(r, m.house));
+      const houseCell = /^\d+(\.\d+)?$/.test(cell(r, m.house)) ? "" : cell(r, m.house);
+      const [house, rawName] = splitHouse(nameCell, houseCell);
+      const name = rawName;
       const rec = {
         house, name, notes: cell(r, m.notes),
         seasons: parseSeasons(cell(r, m.season)),
         times: parseTimes(cell(r, m.time)) || parseTimes(cell(r, m.season)),
-        dupes: splitDupes(dupeCell, cell(r, m.dupeHouse)),
+        gender: parseGender(cell(r, m.gender)) || genderFromName(rawName),
+        dupes: splitDupes(dupeCell, cell(r, m.dupeHouse), style),
         fromSheet: true,
       };
       if (!rec.notes) delete rec.notes;
+      if (!rec.gender) delete rec.gender;
       records.push(rec);
       lastOrig = rec;
     }
     return records;
   }
 
-  function splitDupes(text, dupeHouse) {
-    if (!text) return [];
-    return String(text).split(/\s*(?:;|\n|,(?![^(]*\))|\/(?=\s)|\bor\b)\s*/i)
-      .map((s) => s.replace(/\(.*?\)/g, "").trim())
-      .filter(Boolean)
-      .map((s) => splitHouse(s, dupeHouse));
+  // CSV / TSV (pasted from Google Sheets) → rows of cells.
+  function parseDelimited(text) {
+    const delim = text.includes("\t") ? "\t" : ",";
+    const rows = [];
+    let row = [], cell = "", q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) {
+        if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c;
+      } else if (c === '"' && !cell) q = true;
+      else if (c === delim) { row.push(cell); cell = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && text[i + 1] === "\n") i++;
+        row.push(cell); rows.push(row); row = []; cell = "";
+      } else cell += c;
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows;
   }
 
   function currentSeason(date = new Date(), hemisphere = "north") {
@@ -387,9 +535,9 @@
   }
 
   window.ScentEngine = {
-    ACCORD_KEYS, SEASONS, TIMES, norm, idOf,
+    ACCORD_KEYS, SEASONS, TIMES, GENDERS, norm, idOf, parseGender, genderFromName,
     weightAccords, accordsFromText, cosine, classify, parseSeasons, parseTimes,
     buildCatalog, similar, trainTaste, predict, tasteProfile, nextQuestion,
-    splitTable, guessMapping, recordsFromTable, splitHouse, currentSeason,
+    splitTable, guessMapping, recordsFromTable, splitHouse, splitDupes, dupeStyle, parseDelimited, currentSeason,
   };
 })();

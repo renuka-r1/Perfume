@@ -16,6 +16,9 @@
   --winter: #34689A;
   --day: #9A6B00;
   --night: #4B4790;
+  --men: #2F5F8A;
+  --women: #A3366A;
+  --unisex: #5E6B3A;
   --shadow: 0 1px 2px rgba(36, 26, 43, .06), 0 6px 20px rgba(36, 26, 43, .06);
 
   --f-display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
@@ -26,7 +29,7 @@
   :root:not([data-theme="light"]) {
     --paper: #141117; --surface: #1D1921; --sunk: #26212B; --ink: #EEE8F2; --muted: #A89DB2; --line: #352E3C;
     --accent: #E2A458; --accent-ink: #1A1206; --accent-soft: #3A2A18; --pass: #E08A9C;
-    --spring: #8CCB86; --summer: #E7C060; --fall: #E98A5E; --winter: #8DB9E6; --day: #E7C060; --night: #A9A4F0;
+    --spring: #8CCB86; --summer: #E7C060; --fall: #E98A5E; --winter: #8DB9E6; --day: #E7C060; --night: #A9A4F0; --men: #8DB9E6; --women: #EE93BE; --unisex: #B8C784;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
     color-scheme: dark;
   }
@@ -34,7 +37,7 @@
 :root[data-theme="dark"] {
   --paper: #141117; --surface: #1D1921; --sunk: #26212B; --ink: #EEE8F2; --muted: #A89DB2; --line: #352E3C;
   --accent: #E2A458; --accent-ink: #1A1206; --accent-soft: #3A2A18; --pass: #E08A9C;
-  --spring: #8CCB86; --summer: #E7C060; --fall: #E98A5E; --winter: #8DB9E6; --day: #E7C060; --night: #A9A4F0;
+  --spring: #8CCB86; --summer: #E7C060; --fall: #E98A5E; --winter: #8DB9E6; --day: #E7C060; --night: #A9A4F0; --men: #8DB9E6; --women: #EE93BE; --unisex: #B8C784;
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
   color-scheme: dark;
 }
@@ -93,6 +96,17 @@ h4 { font: 600 11px/1.4 var(--f-mono); letter-spacing: .1em; text-transform: upp
 
 .badge { align-self: start; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--sunk); color: var(--muted); }
 .badge.dupe, .badge.budget { background: var(--accent-soft); color: var(--accent); }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.badge.g-men { color: var(--men); background: none; border: 1px solid currentColor; }
+.badge.g-women { color: var(--women); background: none; border: 1px solid currentColor; }
+.badge.g-unisex { color: var(--unisex); background: none; border: 1px solid currentColor; }
+.genderbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 4px; }
+.genderbar .seg button.on[data-v="men"] { color: var(--men); }
+.genderbar .seg button.on[data-v="women"] { color: var(--women); }
+.genderbar .seg button.on[data-v="unisex"] { color: var(--unisex); }
+.check { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--muted); }
+.check input { width: auto; }
+.gcount { font: 12px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
 .linklike { background: none; border: 0; padding: 0; color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
 
 .strip { display: flex; height: 14px; border-radius: 3px; overflow: hidden; gap: 1px; background: var(--line); }
@@ -116,7 +130,7 @@ h4 { font: 600 11px/1.4 var(--f-mono); letter-spacing: .1em; text-transform: upp
 
 .rate { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
 .rate button, .btn-ghost, .btn-love, .btn-pass { border-radius: 8px; padding: 7px 12px; font-weight: 600; font-size: 13.5px; border: 1px solid var(--line); background: var(--surface); }
-.btn-love { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn-love, .rate .btn-love { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .rate .btn-love[data-action="rate"]:not(.on) { background: var(--surface); color: var(--accent); }
 .btn-pass.on, .confirm .btn-pass { background: var(--pass); border-color: var(--pass); color: var(--surface); }
 .btn-pass:not(.on) { color: var(--pass); }

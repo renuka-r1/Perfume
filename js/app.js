@@ -18,9 +18,12 @@
     imported: [],          // records from the user's spreadsheet
     autoLoaded: [],        // records from data/perfumes.csv, if present
     hemisphere: "north",
+    gender: "all",          // all | men | women | unisex
+    withUnisex: false,      // show unisex alongside men or women
     filters: { q: "", season: "all", time: "all", kind: "all", sort: "match" },
     seasonView: null,
     seasonScope: "all",
+    catLimit: 60,
     dupeId: null,
     quizSkip: [],
     importDraft: null,
@@ -34,7 +37,7 @@
       if (!raw) return;
       const s = JSON.parse(raw);
       Object.assign(state, {
-        ratings: s.ratings || {}, imported: s.imported || [], hemisphere: s.hemisphere || "north",
+        ratings: s.ratings || {}, imported: s.imported || [], hemisphere: s.hemisphere || "north", gender: s.gender || "all", withUnisex: !!s.withUnisex,
         tab: s.tab || state.tab,
       });
     } catch (e) { /* storage unavailable: start fresh */ }
@@ -42,17 +45,23 @@
   function save() {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify({
-        ratings: state.ratings, imported: state.imported, hemisphere: state.hemisphere, tab: state.tab,
+        ratings: state.ratings, imported: state.imported, hemisphere: state.hemisphere, tab: state.tab, gender: state.gender, withUnisex: state.withUnisex,
       }));
     } catch (e) { /* storage unavailable: keep working in memory */ }
   }
 
   function rebuild() {
-    const seed = window.SEED_PERFUMES.map((p) => ({ house: p.house, name: p.name, accords: E.weightAccords(p.accords), notes: p.notes, dupes: p.dupes }));
-    catalog = E.buildCatalog(seed.concat(state.autoLoaded, state.imported));
+    const seed = window.SEED_PERFUMES.map((p) => ({ house: p.house, name: p.name, gender: p.gender, accords: E.weightAccords(p.accords), notes: p.notes, dupes: p.dupes }));
+    const sheet = (window.SHEET_PERFUMES || []).map((p) => ({ house: p.house, name: p.name, gender: p.gender, accords: E.weightAccords(p.accords), dupes: p.dupes, fromSheet: true }));
+    catalog = E.buildCatalog(seed.concat(sheet, state.autoLoaded, state.imported));
     retrain();
   }
   function retrain() { model = E.trainTaste(catalog, state.ratings); }
+
+  // Gender filter applied across every tab.
+  const shown = (it) => state.gender === "all" || it.gender === state.gender || (state.withUnisex && it.gender === "unisex");
+  const view = () => ({ items: catalog.items.filter(shown), byId: catalog.byId });
+  const GENDER_LABEL = { men: "Men", women: "Women", unisex: "Unisex" };
 
   const nowSeason = () => E.currentSeason(new Date(), state.hemisphere);
   const nowTime = () => { const h = new Date().getHours(); return h >= 6 && h < 18 ? "day" : "night"; };
@@ -108,7 +117,7 @@
   function card(it, extra = "") {
     return `<article class="card ${state.ratings[it.id] === 1 ? "loved" : ""}">
       <header><div class="card-title"><div class="house">${esc(it.house || "Unknown house")}</div><h3>${esc(it.name)}</h3></div>${matchMeter(it)}</header>
-      ${kindBadge(it)}
+      <div class="badges">${kindBadge(it)}<span class="badge g-${it.gender}">${GENDER_LABEL[it.gender]}</span></div>
       ${strip(it)}
       ${climateChips(it)}
       ${extra}
@@ -136,15 +145,19 @@
   function render() {
     $("#tabs").innerHTML = TABS.map(([k, l]) => `<button role="tab" aria-selected="${state.tab === k}" class="${state.tab === k ? "on" : ""}" data-action="tab" data-tab="${k}">${l}</button>`).join("");
     const lovedN = Object.values(state.ratings).filter((v) => v > 0).length;
+    $("#genderbar").innerHTML = `<div class="seg gender" role="group" aria-label="Who it's for">${[["all", "Everyone"], ["men", "Men"], ["women", "Women"], ["unisex", "Unisex"]]
+      .map(([k, l]) => `<button class="${state.gender === k ? "on" : ""}" data-action="gender" data-v="${k}" aria-pressed="${state.gender === k}">${l}</button>`).join("")}</div>
+      ${state.gender === "men" || state.gender === "women" ? `<label class="check"><input type="checkbox" id="with-unisex" ${state.withUnisex ? "checked" : ""}> Include unisex</label>` : ""}
+      <span class="gcount">${view().items.length} shown</span>`;
     $("#status").innerHTML = `<span>${catalog.items.length} perfumes</span><span>${Object.keys(state.ratings).length} rated · ${lovedN} loved</span><span>Now: ${SEASON_LABEL[nowSeason()]} ${nowTime() === "day" ? "day" : "night"}</span>`;
-    const view = { foryou: viewForYou, dupes: viewDupes, seasons: viewSeasons, catalogue: viewCatalogue, import: viewImport }[state.tab];
-    $("#view").innerHTML = view();
+    const tabView = { foryou: viewForYou, dupes: viewDupes, seasons: viewSeasons, catalogue: viewCatalogue, import: viewImport }[state.tab];
+    $("#view").innerHTML = tabView();
     if (state.tab === "import") bindImport();
   }
 
   /* For you: active-learning quiz, learned taste, recommendations */
   function viewForYou() {
-    const q = E.nextQuestion(catalog, model, state.ratings, state.quizSkip);
+    const q = E.nextQuestion(view(), model, state.ratings, state.quizSkip);
     const profile = E.tasteProfile(model);
     const likes = profile.filter((p) => p.weight > 0).slice(0, 8);
     const dislikes = profile.filter((p) => p.weight < 0).slice(-6).reverse();
@@ -162,7 +175,7 @@
     }
 
     const recs = model.n
-      ? rank(catalog.items.filter((it) => !(it.id in state.ratings) && !it.unknownScent)).slice(0, 9)
+      ? rank(view().items.filter((it) => !(it.id in state.ratings) && !it.unknownScent)).slice(0, 9)
       : [];
     const because = (it) => {
       const best = model.loved.map((o) => [o, E.cosine(o.vector, it.vector)]).sort((a, b) => b[1] - a[1])[0];
@@ -170,7 +183,7 @@
     };
 
     const season = nowSeason(), time = nowTime();
-    const tonight = rank(catalog.items.filter((it) => it.seasons.includes(season) && it.times.includes(time) && (state.ratings[it.id] === 1 || !(it.id in state.ratings))))
+    const tonight = rank(view().items.filter((it) => it.seasons.includes(season) && it.times.includes(time) && (state.ratings[it.id] === 1 || !(it.id in state.ratings))))
       .slice(0, 4);
 
     return `
@@ -215,8 +228,8 @@
     const listed = sel.dupes.map((id) => catalog.byId.get(id)).filter(Boolean);
     const parents = sel.dupeOf.map((id) => catalog.byId.get(id)).filter(Boolean);
     const exclude = listed.map((d) => d.id).concat(parents.map((p) => p.id));
-    const budget = E.similar(catalog, sel, { limit: 6, budgetOnly: true, exclude });
-    const close = E.similar(catalog, sel, { limit: 6, exclude: exclude.concat(budget.map((b) => b.item.id)) });
+    const budget = E.similar(view(), sel, { limit: 6, budgetOnly: true, exclude });
+    const close = E.similar(view(), sel, { limit: 6, exclude: exclude.concat(budget.map((b) => b.item.id)) });
     const simNote = (s) => `<p class="because"><b>${pct(s)}</b> accord overlap</p>`;
     const options = catalog.items.map((it) => `<option value="${esc(it.name + " — " + it.house)}"></option>`).join("");
 
@@ -231,7 +244,7 @@
         <button class="btn-love" type="submit">Find dupes</button>
       </form>
       ${loved.length ? `<div class="quick"><span>Your loves:</span>${loved.map((it) => `<button class="chip-btn ${it.id === sel.id ? "on" : ""}" data-action="dupes" data-id="${esc(it.id)}">${esc(it.name)}</button>`).join("")}</div>` : ""}
-      <div class="quick"><span>Popular:</span>${catalog.items.filter((it) => it.dupes.length).slice(0, 8).map((it) => `<button class="chip-btn ${it.id === sel.id ? "on" : ""}" data-action="dupes" data-id="${esc(it.id)}">${esc(it.name)}</button>`).join("")}</div>
+      <div class="quick"><span>Most dupes:</span>${view().items.filter((it) => it.dupes.length).sort((a, b) => b.dupes.length - a.dupes.length).slice(0, 8).map((it) => `<button class="chip-btn ${it.id === sel.id ? "on" : ""}" data-action="dupes" data-id="${esc(it.id)}">${esc(it.name)}</button>`).join("")}</div>
     </section>
 
     <section class="split">
@@ -254,9 +267,9 @@
   /* Seasons: wardrobe matrix + per-season day/night lists */
   function viewSeasons() {
     const season = state.seasonView || nowSeason();
-    const loved = catalog.items.filter((it) => state.ratings[it.id] === 1);
+    const loved = view().items.filter((it) => state.ratings[it.id] === 1);
     const cell = (s, t) => loved.filter((it) => it.seasons.includes(s) && it.times.includes(t));
-    const gapPick = (s, t) => rank(catalog.items.filter((it) => it.seasons.includes(s) && it.times.includes(t) && !(it.id in state.ratings)))[0];
+    const gapPick = (s, t) => rank(view().items.filter((it) => it.seasons.includes(s) && it.times.includes(t) && !(it.id in state.ratings)))[0];
 
     const matrix = `<div class="matrix-wrap"><table class="matrix">
       <thead><tr><th></th>${E.SEASONS.map((s) => `<th class="season-${s}"><button data-action="season" data-season="${s}" class="${s === season ? "on" : ""}">${SEASON_LABEL[s]}</button></th>`).join("")}</tr></thead>
@@ -267,7 +280,7 @@
           : g ? `<span class="gap">Gap. Try <button class="linklike" data-action="dupes" data-id="${esc(g.id)}">${esc(g.name)}</button></span>` : `<span class="gap">Nothing yet</span>`}</td>`;
       }).join("")}</tr>`).join("")}</tbody></table></div>`;
 
-    const pool = catalog.items.filter((it) => it.seasons.includes(season) && (state.seasonScope === "all" ||
+    const pool = view().items.filter((it) => it.seasons.includes(season) && (state.seasonScope === "all" ||
       (state.seasonScope === "loved" && state.ratings[it.id] === 1) || (state.seasonScope === "budget" && it.budget)));
     const col = (t) => {
       const list = rank(pool.filter((it) => it.times.includes(t)));
@@ -299,7 +312,7 @@
   function viewCatalogue() {
     const f = state.filters;
     const q = E.norm(f.q);
-    let list = catalog.items.filter((it) =>
+    let list = view().items.filter((it) =>
       (!q || E.norm(it.name + " " + it.house + " " + it.notes).includes(q)) &&
       (f.season === "all" || it.seasons.includes(f.season)) &&
       (f.time === "all" || it.times.includes(f.time)) &&
@@ -316,13 +329,14 @@
       ${sel("cat-sort", "Sort", "sort", [["match", "Best match"], ["name", "A–Z"]])}
     </section>
     <p class="count">${list.length} perfume${list.length === 1 ? "" : "s"}</p>
-    <div class="grid">${list.map((it) => card(it)).join("")}</div>`;
+    <div class="grid">${list.slice(0, state.catLimit).map((it) => card(it)).join("")}</div>
+    ${list.length > state.catLimit ? `<button class="btn-ghost wide" data-action="more">Show ${Math.min(60, list.length - state.catLimit)} more</button>` : ""}`;
   }
 
   /* Spreadsheet import */
   function viewImport() {
     const d = state.importDraft;
-    const fields = [["name", "Original perfume"], ["house", "Original brand"], ["dupe", "Dupe(s)"], ["dupeHouse", "Dupe brand"], ["notes", "Notes / accords"], ["season", "Season"], ["time", "Day / night"]];
+    const fields = [["name", "Original perfume"], ["house", "Original brand"], ["dupe", "Dupe(s)"], ["dupeHouse", "Dupe brand"], ["notes", "Notes / accords"], ["season", "Season"], ["time", "Day / night"], ["gender", "Men / women / unisex"]];
     const sheetCount = state.imported.length;
     return `
     <section class="split">
@@ -341,7 +355,8 @@
       </div>
       <div class="panel">
         <div class="eyebrow">Currently loaded</div>
-        <h2>${sheetCount ? `${sheetCount} rows from your sheet` : "No spreadsheet yet"}</h2>
+        <h2>${sheetCount ? `${sheetCount} extra rows added` : "Your clone list is loaded"}</h2>
+        <p class="hint">Built in: <b>${(window.SHEET_PERFUMES || []).length} originals</b> from MIDDLE_EASTERN_CLONES_2024, with ${(window.SHEET_PERFUMES || []).reduce((s, p) => s + p.dupes.length, 0)} dupes. Anything you add here is merged on top.</p>
         <p class="hint">${state.autoLoaded.length ? `Also loaded ${state.autoLoaded.length} rows from data/perfumes.csv in the project folder. ` : ""}Rows stay in this browser so the app remembers them next time.</p>
         ${sheetCount ? `<ul class="minis">${state.imported.slice(0, 8).map((r) => `<li class="mini"><span class="mini-text"><b>${esc(r.name)}</b><small>${esc(r.house)}${r.dupes.length ? " · " + r.dupes.length + " dupe" + (r.dupes.length > 1 ? "s" : "") : ""}</small></span></li>`).join("")}</ul>
           ${sheetCount > 8 ? `<p class="hint">and ${sheetCount - 8} more</p>` : ""}
@@ -363,29 +378,10 @@
 
   /* ---------- spreadsheet reading ---------- */
 
-  function parseDelimited(text) {
-    const delim = text.includes("\t") ? "\t" : ",";
-    const rows = [];
-    let row = [], cell = "", q = false;
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      if (q) {
-        if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c;
-      } else if (c === '"' && !cell) q = true;
-      else if (c === delim) { row.push(cell); cell = ""; }
-      else if (c === "\n" || c === "\r") {
-        if (c === "\r" && text[i + 1] === "\n") i++;
-        row.push(cell); rows.push(row); row = []; cell = "";
-      } else cell += c;
-    }
-    if (cell || row.length) { row.push(cell); rows.push(row); }
-    return rows;
-  }
-
   function setDraft(sheets, sheetIndex = 0) {
     const { headers, body } = E.splitTable(sheets[sheetIndex].rows);
     if (!body.length) { state.importMsg = "That sheet has no rows under its header. Check the file and try again."; state.importDraft = null; return; }
-    state.importDraft = { sheets: sheets.map((s) => s.name), all: sheets, sheetIndex, headers, body, mapping: E.guessMapping(headers) };
+    state.importDraft = { sheets: sheets.map((s) => s.name), all: sheets, sheetIndex, headers, body, mapping: E.guessMapping(headers, body) };
     state.importMsg = "";
   }
 
@@ -394,7 +390,7 @@
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        if (isText) setDraft([{ name: file.name, rows: parseDelimited(reader.result) }]);
+        if (isText) setDraft([{ name: file.name, rows: E.parseDelimited(reader.result) }]);
         else {
           if (!window.XLSX) throw new Error("The spreadsheet reader didn't load. Save the sheet as .csv and try again.");
           const wb = window.XLSX.read(reader.result, { type: "array" });
@@ -417,8 +413,8 @@
       if (!res.ok) return;
       const text = await res.text();
       if (!text.trim() || /<html/i.test(text.slice(0, 200))) return;
-      const { headers, body } = E.splitTable(parseDelimited(text));
-      state.autoLoaded = E.recordsFromTable(body, E.guessMapping(headers));
+      const { headers, body } = E.splitTable(E.parseDelimited(text));
+      state.autoLoaded = E.recordsFromTable(body, E.guessMapping(headers, body));
       rebuild();
       render();
     } catch (e) { /* no bundled sheet: fine */ }
@@ -441,6 +437,8 @@
       case "dupes": state.dupeId = id; state.tab = "dupes"; save(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); return;
       case "season": state.seasonView = b.dataset.season; render(); return;
       case "scope": state.seasonScope = b.dataset.v; render(); return;
+      case "more": state.catLimit += 60; render(); return;
+      case "gender": state.gender = b.dataset.v; save(); render(); return;
       case "hemi": state.hemisphere = b.dataset.v; state.seasonView = null; save(); render(); return;
       case "reset-ratings": state.confirmClear = "ratings"; render(); return;
       case "reset-ratings-yes": state.ratings = {}; state.quizSkip = []; state.confirmClear = false; retrain(); save(); render(); return;
@@ -450,7 +448,7 @@
       case "parse-paste": {
         const t = $("#imp-paste").value;
         if (!t.trim()) { state.importMsg = "Paste some cells first."; render(); return; }
-        setDraft([{ name: "Pasted cells", rows: parseDelimited(t) }]); render(); return;
+        setDraft([{ name: "Pasted cells", rows: E.parseDelimited(t) }]); render(); return;
       }
       case "do-import": {
         const d = state.importDraft;
@@ -467,8 +465,9 @@
   document.addEventListener("change", (ev) => {
     const t = ev.target;
     if (t.dataset.map && state.importDraft) { state.importDraft.mapping[t.dataset.map] = +t.value; render(); }
+    else if (t.id === "with-unisex") { state.withUnisex = t.checked; save(); render(); }
     else if (t.id === "imp-sheet") { setDraft(state.importDraft.all, +t.value); render(); }
-    else if (t.dataset.filter && t.tagName === "SELECT") { state.filters[t.dataset.filter] = t.value; render(); }
+    else if (t.dataset.filter && t.tagName === "SELECT") { state.filters[t.dataset.filter] = t.value; state.catLimit = 60; render(); }
   });
 
   let qTimer;
